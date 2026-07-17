@@ -1,0 +1,33 @@
+{
+  "warm_conversation": {
+    "joy": 8,
+    "sadness": -3
+  },
+  "long_absence": {
+    "sadness": 4
+  },
+  "unexpected_problem": {
+    "fear": 5
+  },
+  "harsh_correction": {
+    "anger": 4,
+    "sadness": 2
+  },
+  "interesting_discovery": {
+    "joy": 6
+  },
+  "quiet_companionship": {
+    "joy": 3,
+    "sadness": -1
+  },
+  "repair_after_conflict": {
+    "joy": 5,
+    "anger": -4,
+    "sadness": -2
+  },
+  "return_after_absence": {
+    "joy": 6,
+    "sadness": -3,
+    "fear": -1
+  }
+}
