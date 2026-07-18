@@ -54,7 +54,7 @@ class PersistentAffectRuntimeTests(unittest.TestCase):
             )
             snapshot = restored.process_event("quiet_companionship")
 
-            self.assertAlmostEqual(snapshot.state.joy, 55.5)
+            self.assertAlmostEqual(snapshot.state.joy, 43.0)
             self.assertEqual(restored.updated_at, now)
 
     def test_reload_uses_the_runtime_baseline_configuration(self):
@@ -97,7 +97,7 @@ class PersistentAffectRuntimeTests(unittest.TestCase):
                 event_rules=self.rules,
             )
 
-            self.assertEqual(restored.state.joy, 8)
+            self.assertEqual(restored.state.joy, 1)
             self.assertEqual(restored.state.sadness, 0)
 
 

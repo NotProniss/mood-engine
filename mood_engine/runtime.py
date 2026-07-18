@@ -1,4 +1,4 @@
-"""In-memory coordinator for the affect, expression, and response layers."""
+"""In-memory coordinator for emotion state and response guidance."""
 
 from __future__ import annotations
 
@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from .behavior import BehaviorSignals, derive_behavior_signals
 from .decay import DEFAULT_BASELINES, DEFAULT_HALF_LIVES_HOURS, decay_state
 from .events import EventContext, EventRules
 from .persistence import load_state as load_persisted_state
@@ -23,13 +22,11 @@ class RuntimeSnapshot:
     """The complete inspectable output of one runtime evaluation."""
 
     state: EmotionState
-    expression: BehaviorSignals
     guidance: ResponseGuidance
 
     def to_dict(self) -> dict[str, dict]:
         return {
             "emotions": self.state.to_dict(),
-            "expression": self.expression.to_dict(),
             "guidance": self.guidance.to_dict(),
         }
 
@@ -88,10 +85,9 @@ class AffectRuntime:
         self.updated_at = timestamp
 
     def inspect(self) -> RuntimeSnapshot:
-        """Return current state plus all derived output layers."""
-        expression = derive_behavior_signals(self.state)
-        guidance = derive_response_guidance(expression)
-        return RuntimeSnapshot(self.state, expression, guidance)
+        """Return current state plus focused response guidance."""
+        guidance = derive_response_guidance(self.state)
+        return RuntimeSnapshot(self.state, guidance)
 
     def advance_time(self, *, elapsed_hours: float) -> RuntimeSnapshot:
         """Apply decay without creating an event."""

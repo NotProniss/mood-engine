@@ -33,7 +33,7 @@ class PersistenceTests(unittest.TestCase):
             save_state(path, EmotionState(joy=80), updated_at)
             restored, restored_at = load_state(path, now=now)
 
-            self.assertAlmostEqual(restored.joy, 52.5)
+            self.assertAlmostEqual(restored.joy, 40.0)
             self.assertEqual(restored_at, now)
 
     def test_malformed_state_raises_clear_error(self):

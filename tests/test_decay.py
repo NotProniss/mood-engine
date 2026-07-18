@@ -32,7 +32,7 @@ class DecayTests(unittest.TestCase):
 
         self.assertGreater(decayed.joy, DEFAULT_BASELINES["joy"])
         self.assertLess(decayed.joy, 40)
-        self.assertEqual(decayed.to_display_dict()["joy"], 38)
+        self.assertEqual(decayed.to_display_dict()["joy"], 35)
 
     def test_zero_elapsed_time_does_not_change_state(self):
         state = EmotionState(joy=42, sadness=17)

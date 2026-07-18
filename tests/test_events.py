@@ -13,13 +13,13 @@ class EventRulesTests(unittest.TestCase):
     def setUpClass(cls):
         cls.rules = EventRules.from_json_file(RULES_PATH)
 
-    def test_warm_conversation_applies_signed_deltas(self):
+    def test_warm_conversation_is_a_small_nudge(self):
         state = EmotionState(sadness=10)
 
         updated = self.rules.apply(state, "warm_conversation")
 
-        self.assertEqual(updated.joy, 8)
-        self.assertEqual(updated.sadness, 7)
+        self.assertEqual(updated.joy, 1)
+        self.assertEqual(updated.sadness, 9)
 
     def test_unknown_event_raises_clear_error(self):
         with self.assertRaises(UnknownEventError):

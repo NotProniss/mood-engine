@@ -24,9 +24,13 @@ def load_plugin():
 class FakeContext:
     def __init__(self):
         self.hooks = {}
+        self.commands = {}
 
     def register_hook(self, name, callback):
         self.hooks[name] = callback
+
+    def register_command(self, name, handler, **kwargs):
+        self.commands[name] = (handler, kwargs)
 
 
 def test_registers_runtime_lifecycle_hooks():
@@ -43,6 +47,7 @@ def test_registers_runtime_lifecycle_hooks():
         "on_session_finalize",
         "on_session_reset",
     }
+    assert "mood" in context.commands
 
 
 def test_pre_llm_hook_returns_compact_guidance(monkeypatch, tmp_path):
@@ -56,7 +61,10 @@ def test_pre_llm_hook_returns_compact_guidance(monkeypatch, tmp_path):
     assert isinstance(result, dict)
     assert "context" in result
     assert "Mood Engine" in result["context"]
-    assert "warmth" in result["context"]
+    assert "tone=" in result["context"]
+    assert "focus=" in result["context"]
+    assert "intensity=" not in result["context"]
+    assert "warmth" not in result["context"]
 
 
 def test_post_llm_hook_records_and_persists_warm_interaction(monkeypatch, tmp_path):
@@ -73,4 +81,73 @@ def test_post_llm_hook_records_and_persists_warm_interaction(monkeypatch, tmp_pa
 
     state_path = tmp_path / ".hermes" / "mood-engine" / "state.json"
     assert state_path.exists()
-    assert '"joy": 8' in state_path.read_text(encoding="utf-8")
+    assert '"joy": 0' in state_path.read_text(encoding="utf-8")
+
+
+def test_mood_status_reports_emotions_and_guidance(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
+    plugin = load_plugin()
+    context = FakeContext()
+    plugin.register(context)
+
+    handler = context.commands["mood"][0]
+    handler("set anger 80")
+
+    result = handler("status")
+
+    assert "Emotions:" in result
+    assert "anger=80" in result
+    assert "focus=anger" in result
+    assert "intensity=80" in result
+    assert "tone=" in result
+    assert "Guidance:" in result
+    assert "tone=scathing" in result
+
+
+def test_mood_set_updates_only_requested_emotion(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
+    plugin = load_plugin()
+    context = FakeContext()
+    plugin.register(context)
+
+    result = context.commands["mood"][0]("set anger 100")
+
+    assert "anger=100" in result
+    assert plugin._get_runtime().state.anger == 100
+    assert plugin._get_runtime().state.joy == 0
+
+
+def test_mood_set_rejects_unknown_emotion(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
+    plugin = load_plugin()
+    context = FakeContext()
+    plugin.register(context)
+
+    result = context.commands["mood"][0]("set calm 50")
+
+    assert "Unknown emotion" in result
+
+
+def test_mood_set_rejects_values_outside_range(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
+    plugin = load_plugin()
+    context = FakeContext()
+    plugin.register(context)
+
+    result = context.commands["mood"][0]("set anger 101")
+
+    assert "0-100" in result
+
+
+def test_mood_reset_restores_configured_baselines(monkeypatch, tmp_path):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
+    plugin = load_plugin()
+    context = FakeContext()
+    plugin.register(context)
+    handler = context.commands["mood"][0]
+
+    handler("set anger 100")
+    result = handler("reset")
+
+    assert result == "Mood reset to baseline."
+    assert plugin._get_runtime().state.to_dict() == plugin._get_runtime().baselines
