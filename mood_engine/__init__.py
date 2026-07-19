@@ -6,8 +6,9 @@ from .decay import (
     load_half_lives,
 )
 from .events import EventRules, UnknownEventError
+from .conversation import ConversationClassification, classify_round
 from .persistence import StateFileError, load_state, save_state
-from .response import ResponseGuidance, derive_response_guidance
+from .response import FocusedResponse, derive_focused_response
 from .runtime import AffectRuntime, RuntimeSnapshot
 from .state import EMOTIONS, EmotionState
 
@@ -16,14 +17,16 @@ __all__ = [
     "EmotionState",
     "EventRules",
     "UnknownEventError",
+    "ConversationClassification",
+    "classify_round",
     "DEFAULT_HALF_LIVES_HOURS",
     "decay_state",
     "load_half_lives",
     "StateFileError",
     "load_state",
     "save_state",
-    "ResponseGuidance",
-    "derive_response_guidance",
+    "FocusedResponse",
+    "derive_focused_response",
     "AffectRuntime",
     "RuntimeSnapshot",
 ]

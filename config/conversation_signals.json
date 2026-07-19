@@ -1,0 +1,66 @@
+{
+  "hurtful": {
+    "event": "hurtful_conversation",
+    "confidence": 0.8,
+    "patterns": [
+      "\\bthat hurt\\b",
+      "\\b(?:you|that) (?:hurt|dismissed|ignored) me\\b",
+      "\\bmade me (?:sad|upset)\\b",
+      "\\bfeel(?:ing)? rejected\\b",
+      "\\bthat was hurtful\\b",
+      "\\bdeeply disappointed\\b"
+    ]
+  },
+  "offensive": {
+    "event": "offensive_conversation",
+    "confidence": 0.8,
+    "patterns": [
+      "\\boffensive\\b",
+      "\\b(?:you(?:'re| are)|that was) (?:rude|insulting)\\b",
+      "\\b(?:shut up|idiot|stupid)\\b",
+      "\\bthat was an insult\\b"
+    ]
+  },
+  "awkward": {
+    "event": "awkward_encounter",
+    "confidence": 0.8,
+    "patterns": [
+      "\\bawkward\\b",
+      "\\bembarrass(?:ed|ing|ment)\\b",
+      "\\buncomfortable\\b",
+      "\\bthat was weird\\b"
+    ]
+  },
+  "unpleasant": {
+    "event": "unpleasant_conversation",
+    "confidence": 0.8,
+    "patterns": [
+      "\\bunpleasant\\b",
+      "\\b(?:annoying|gross|disgusting)\\b",
+      "\\bugh\\b",
+      "\\bi hate this\\b"
+    ]
+  },
+  "funny": {
+    "event": "funny_conversation",
+    "confidence": 0.8,
+    "patterns": [
+      "\\b(?:lol|lmao|haha|hahaha)\\b",
+      "\\b(?:funny|hilarious)\\b",
+      "\\bmade me laugh\\b",
+      "\\bthat joke\\b"
+    ]
+  },
+  "pleasant": {
+    "event": "pleasant_conversation",
+    "confidence": 0.8,
+    "patterns": [
+      "\\bnice to talk\\b",
+      "\\b(?:thank you|thanks)\\b",
+      "\\b(?:glad|appreciate)\\b",
+      "\\bthat helps\\b",
+      "\\bsounds good\\b",
+      "\\b(?:great|lovely)\\b"
+    ]
+  }
+}

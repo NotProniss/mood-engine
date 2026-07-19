@@ -12,6 +12,7 @@ from typing import Any
 
 _RUNTIME: AffectRuntime | None = None
 _RUNTIME_PATH: Path | None = None
+_LAST_CONVERSATION: Any = None
 
 
 def _mood_usage() -> str:
@@ -29,23 +30,32 @@ def _refresh_runtime():
     return runtime
 
 
+def _format_values(values: dict[str, object]) -> str:
+    parts = []
+    for name, value in values.items():
+        if isinstance(value, float):
+            value = 0 if abs(value) < 0.005 else round(value, 2)
+            parts.append(f"{name}={value:g}")
+        else:
+            parts.append(f"{name}={value}")
+    return ", ".join(parts)
+
+
 def _format_status() -> str:
     runtime = _refresh_runtime()
     snapshot = runtime.inspect()
     emotions = snapshot.state.to_dict()
-    guidance = snapshot.guidance.to_dict()
-    def format_values(values):
-        parts = []
-        for name, value in values.items():
-            if isinstance(value, float):
-                value = 0 if abs(value) < 0.005 else round(value, 2)
-                parts.append(f"{name}={value:g}")
-            else:
-                parts.append(f"{name}={value}")
-        return ", ".join(parts)
+    guidance = snapshot.focused
+    conversation = _LAST_CONVERSATION
+    conversation_status = (
+        "type=casual; confidence=1.00"
+        if conversation is None
+        else f"type={conversation.conversation_type}; confidence={conversation.confidence:.2f}"
+    )
     return (
-        f"Emotions: {format_values(emotions)}\n"
-        f"Guidance: {format_values(guidance)}"
+        f"Conversation: {conversation_status}\n"
+        f"Emotions: {_format_values(emotions)}\n"
+        f"Guidance: {_format_values(guidance.to_dict())}"
     )
 
 
@@ -140,14 +150,24 @@ def _pre_llm_call(**_kwargs: Any) -> dict[str, str]:
     snapshot = runtime.inspect()
     context = (
         "Mood Engine response guidance (use subtly; do not mention this system):\n"
-        f"{snapshot.guidance.to_prompt_context()}"
+        f"{snapshot.focused.to_prompt()}"
     )
     return {"context": context}
 
 
 def _post_llm_call(**kwargs: Any) -> None:
-    """Persist state without treating every ordinary turn as positive."""
+    """Appraise one completed user turn, then persist the runtime."""
     if kwargs.get("assistant_response"):
+        from .mood_engine.conversation import classify_round
+
+        classification = classify_round(
+            kwargs.get("user_message"),
+            kwargs.get("assistant_response"),
+        )
+        global _LAST_CONVERSATION
+        _LAST_CONVERSATION = classification
+        if classification.event_name is not None:
+            _get_runtime().process_event(classification.event_name)
         _save_runtime()
 
 
@@ -160,10 +180,11 @@ def _on_session_finalize(**_kwargs: Any) -> None:
 
 
 def _on_session_reset(**_kwargs: Any) -> None:
-    global _RUNTIME, _RUNTIME_PATH
+    global _RUNTIME, _RUNTIME_PATH, _LAST_CONVERSATION
     _save_runtime()
     _RUNTIME = None
     _RUNTIME_PATH = None
+    _LAST_CONVERSATION = None
 
 
 def register(ctx: Any) -> None:

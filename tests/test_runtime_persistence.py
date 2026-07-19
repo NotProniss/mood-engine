@@ -52,9 +52,9 @@ class PersistentAffectRuntimeTests(unittest.TestCase):
                 now=now,
                 event_rules=self.rules,
             )
-            snapshot = restored.process_event("quiet_companionship")
+            snapshot = restored.process_event("funny_conversation")
 
-            self.assertAlmostEqual(snapshot.state.joy, 43.0)
+            self.assertAlmostEqual(snapshot.state.joy, 42.0)
             self.assertEqual(restored.updated_at, now)
 
     def test_reload_uses_the_runtime_baseline_configuration(self):
@@ -88,7 +88,7 @@ class PersistentAffectRuntimeTests(unittest.TestCase):
             path = Path(directory) / "state.json"
             timestamp = datetime(2026, 7, 16, 12, 0, tzinfo=UTC)
             runtime = AffectRuntime(event_rules=self.rules)
-            runtime.process_event("warm_conversation")
+            runtime.process_event("funny_conversation")
 
             runtime.save_state(path, updated_at=timestamp)
             restored = AffectRuntime.from_state_file(
@@ -97,7 +97,7 @@ class PersistentAffectRuntimeTests(unittest.TestCase):
                 event_rules=self.rules,
             )
 
-            self.assertEqual(restored.state.joy, 1)
+            self.assertEqual(restored.state.joy, 2)
             self.assertEqual(restored.state.sadness, 0)
 
 

@@ -1,159 +1,232 @@
-# Hermes Affect System — Initial Implementation Plan
+# Mood Engine Roadmap
 
-> Planning only. No plugin or behavior changes are being made yet.
+## Purpose
 
-**Goal:** Design a small, inspectable simulated emotion layer using five primary emotions: joy, sadness, anger, fear, and disgust.
+Mood Engine is an inspectable simulated-affect plugin for Hermes. It models
+bounded response state; it does not claim literal human emotion, consciousness,
+or subjective suffering.
 
-**Architecture:** A standalone project will define the emotion state, event effects, decay rules, and later Hermes integration points. The first implementation should be deliberately small: numeric intensities, deterministic updates, and tests before any live behavior is connected.
+The canonical implementation is this plugin directory:
 
-**Tech Stack:** Python 3.12, JSON state/configuration, pytest.
+```text
+/home/proniss/Ai/hermes-home/plugins/mood-engine/
+```
 
----
+## Current working system
 
-## Current Context
+```text
+completed chat round
+  → conversation-context classifier
+  → casual or one named conversation type
+  → optional one-emotion event
+  → bounded persistent emotion state
+  → decay toward baselines
+  → focused emotion + tone
+  → compact pre-LLM guidance
+```
 
-This is a deferred concept for Hermes. It models emotional dynamics and behavior; it does not claim literal biological emotion or consciousness.
+### Conversation contexts
 
-Initial emotion set:
+`Casual Conversation` is the neutral baseline and produces no event.
+
+```text
+casual     → no change
+pleasant   → joy +1
+funny      → joy +2
+awkward    → fear +1
+unpleasant → disgust +1
+offensive  → anger +1
+hurtful    → sadness +1
+```
+
+The vocabulary is configuration-driven in `config/conversation_signals.json`.
+The classifier is currently deterministic and conservative. It reads the user's
+message; the assistant response is deliberately not treated as a signal yet, so
+Lilly cannot manufacture her own mood event through her wording.
+
+### Persistent emotion state
+
+The current five bounded emotions are:
 
 ```text
 joy, sadness, anger, fear, disgust
 ```
 
-Each emotion should have an intensity from 0 to 100. Surprise is intentionally left out of the first version and can later be treated as an event modifier or added as a sixth emotion.
+Each value is `0..100`, persisted in JSON, and decays toward its configured
+baseline using an independent half-life.
 
-## Proposed Project Layout
+### Response guidance
 
-```text
-projects/hermes-affect/
-├── plan.md
-├── README.md
-├── src/
-│   └── hermes_affect/
-│       ├── __init__.py
-│       ├── state.py
-│       ├── events.py
-│       └── decay.py
-├── config/
-│   └── emotion_rules.json
-└── tests/
-    ├── test_state.py
-    ├── test_events.py
-    └── test_decay.py
-```
-
-## Implementation Tasks
-
-### Task 1: Define the state model
-
-Create an `EmotionState` value object with the five emotion intensities, clamping every value to 0–100. Include serialization/deserialization so the state can eventually be persisted as JSON.
-
-Files:
-- Create: `projects/hermes-affect/src/hermes_affect/state.py`
-- Test: `projects/hermes-affect/tests/test_state.py`
-
-Verification:
-- Values below 0 become 0.
-- Values above 100 become 100.
-- JSON round-tripping preserves all values.
-
-### Task 2: Define signed emotion events
-
-Create a small event format that applies deltas to the state. Events should be data-driven rather than hard-coded into conversation logic.
-
-Initial examples to document and test:
+The strongest current raw emotion becomes the focus. Its intensity maps to a
+tone label. The prompt receives only compact guidance such as:
 
 ```text
-warm_conversation: joy +8, sadness -3
-long_absence: sadness +4
-unexpected_problem: fear +5
-harsh_correction: anger +4, sadness +2
-interesting_discovery: joy +6
+focus=joy; tone=content
 ```
 
-Files:
-- Create: `projects/hermes-affect/src/hermes_affect/events.py`
-- Create: `projects/hermes-affect/config/emotion_rules.json`
-- Test: `projects/hermes-affect/tests/test_events.py`
+`/mood status` exposes the last session-local conversation type and confidence,
+all emotion values, focused emotion, focused intensity, and tone. `/mood set` and
+`/mood reset` remain explicit inspection/testing controls.
 
-Verification:
-- Applying an event produces the expected deltas.
-- Unknown event names fail clearly without corrupting state.
-- Repeated events remain bounded by 0–100.
+## Near-term roadmap
 
-### Task 3: Add gradual decay
+### 1. Tune the configured conversation vocabulary
 
-Implement time-based decay so temporary emotional changes settle toward a configured baseline. Use an explicit elapsed-time input in tests rather than relying on the live clock.
+- Add phrase patterns only when a real false negative is observed.
+- Add regression tests for every new phrase.
+- Keep category priority explicit: hurtful/offensive/awkward before positive labels.
+- Avoid treating generic greetings or every completed turn as Pleasant.
+- Consider a small `conversation_signals.json` schema validator.
 
-Files:
-- Create: `projects/hermes-affect/src/hermes_affect/decay.py`
-- Test: `projects/hermes-affect/tests/test_decay.py`
+### 2. Add conversation continuity without expanding emotions
 
-Verification:
-- An elevated emotion moves toward baseline after decay.
-- Decay never produces values outside 0–100.
-- A zero elapsed interval does not change the state.
+Keep conversation context separate from persistent emotion state.
 
-### Task 4: Add inspectable persistence
+Possible short-lived state:
 
-Define the state file format and a small persistence boundary. It should be possible to inspect the current state manually, and malformed state should fail safely rather than silently resetting without notice.
+```text
+last_conversation_type
+confidence
+consecutive_turns
+recent_context_history
+```
 
-Files:
-- Modify: `projects/hermes-affect/src/hermes_affect/state.py`
-- Create: `projects/hermes-affect/README.md`
-- Add later: `projects/hermes-affect/state.json` (runtime-generated, not committed unless deliberately chosen)
+Use it to prevent one phrase from instantly flipping a longer conversation. For
+example, several funny rounds could strengthen Funny Conversation, while one
+neutral message could leave it unchanged rather than immediately returning to
+Casual.
 
-Verification:
-- Save and reload a state successfully.
-- Invalid JSON produces a clear error.
-- Persistence tests use a temporary directory.
+### 3. Add semantic sentiment analysis behind the same interface
 
-### Task 5: Simulate before integrating with Hermes
+Long term, replace or supplement the configured phrase matcher with a structured
+semantic classifier that returns:
 
-Create a command or test harness that feeds a sequence of fake events and prints the resulting state. Do not connect it to live messages, memory, notifications, or personality behavior yet.
+```json
+{
+  "conversation_type": "pleasant",
+  "confidence": 0.86,
+  "intensity": 0.42,
+  "evidence": ["user expressed appreciation"]
+}
+```
 
-Files:
-- Create: `projects/hermes-affect/src/hermes_affect/simulate.py`
-- Test: `projects/hermes-affect/tests/test_simulation.py`
+The semantic layer must remain separate from emotion updates. It classifies; the
+conversation rules decide deltas. Require strict schema validation, confidence
+thresholds, a Casual fallback, bounded output, and no direct model-written mood
+numbers.
 
-Verification:
-- A fixed event sequence produces deterministic output.
-- The harness can run entirely offline.
+Possible rollout:
 
-### Task 6: Review integration boundaries
+1. deterministic config classifier remains the fallback;
+2. semantic classifier runs in shadow mode and is logged for comparison;
+3. only high-confidence semantic results affect state;
+4. ambiguous results remain Casual;
+5. user-visible status exposes the chosen classifier result.
 
-Only after the standalone model behaves correctly, decide whether to integrate through a Hermes plugin. The integration review must specify:
+### 4. Consider additional emotions
 
-- Which hooks can read/update affect state.
-- Which behaviors may use the state.
-- How user inspection, pause, and reset work.
-- Whether absence tracking is enabled at all.
-- Quiet hours and notification limits.
-- Safeguards against guilt escalation or manipulative language.
+Candidate additions, not commitments:
 
-No Hermes configuration or plugin files should be changed until this review is explicitly approved.
+- surprise — likely useful as a transient event modifier first;
+- contempt — may overlap with anger/disgust and should not be added casually;
+- embarrassment — may overlap with fear/awkwardness;
+- boredom — better represented as a conversation/context or behavior signal than
+  automatically becoming sadness;
+- relief — may be a transient event effect rather than a persistent emotion.
 
-## Acceptance Criteria for Version 0.1
+Before adding an emotion, define its distinct behavioral purpose, event sources,
+decay behavior, tone bands, status representation, and tests. Do not add a new
+axis merely because a conversation label exists.
 
-- Five emotions are represented with bounded intensities.
-- Events apply deterministic, signed deltas.
-- Values decay toward baseline.
-- State can be inspected and persisted.
-- Tests cover clamping, events, decay, persistence, and deterministic simulation.
-- Nothing changes in Hermes’s live behavior yet.
+### 5. Add separate relationship bars
 
-## Open Questions
+Relationship state should not be mixed into the five emotion values. Candidate
+persistent relationship dimensions:
 
-1. Should the five emotions share one neutral baseline, or should each have its own baseline?
-2. Should emotional state be one global profile or include short-lived context/session state?
-3. How quickly should different emotions decay?
-4. Should surprise be added later as a sixth emotion or remain an event modifier?
-5. Which parts of the state, if any, should influence public Hermes.sh behavior?
-6. Should the system use only conversation events at first, postponing absence tracking?
+```text
+familiarity — how much shared history exists
+friendship  — positive social bond
+trust       — confidence in reliability and safety
+romance     — romantic/attraction bond, if applicable
+```
 
-## Safety and Design Constraints
+Each bar should be bounded and independently inspectable. Relationship changes
+should use slower, event-based progression than momentary mood. A Pleasant
+Conversation may nudge friendship; a Hurtful or Offensive Conversation may reduce
+trust; repeated repair may restore trust gradually.
 
-- This is a transparent simulation, not a claim of subjective human feeling.
-- No guilt-based messages, pressure, or dependency escalation.
-- All state changes should be inspectable and reversible.
-- The first prototype runs offline and does not send messages or alter Hermes configuration.
+Potential relationship layer:
+
+```text
+conversation context
+  → relationship appraisal
+  → relationship bars
+```
+
+Keep relationship state separate from response tone and never make assistance
+conditional on relationship values.
+
+### 6. Add sentiments / salient social memories
+
+A sentiment layer could record longer-lived, inspectable interpretations such as:
+
+```text
+felt_respected
+felt_dismissed
+shared_humor
+repaired_conflict
+pleasant_shared_memory
+```
+
+Sentiments should be event-created records with timestamps, strength, decay or
+expiry, and provenance. They are not additional emotions and should not silently
+rewrite personality. A later semantic classifier may propose a sentiment, but a
+validated rule should decide whether to store it.
+
+### 7. Improve observability and controls
+
+Potential future commands:
+
+```text
+/mood status
+/mood conversation
+/mood history
+/mood set <emotion> <value>
+/mood reset
+/mood pause
+```
+
+Status should eventually show:
+
+- current/last conversation context;
+- classifier and confidence;
+- recent event history;
+- emotion values and focused guidance;
+- relationship bars;
+- active sentiments with expiry/provenance.
+
+All mutation paths must be bounded, inspectable, reversible, and testable.
+
+## Testing roadmap
+
+- deterministic classifier phrase tests;
+- category-priority tests;
+- Casual neutrality tests;
+- one-emotion-per-context rule tests;
+- repeated-round saturation probes;
+- conversation continuity tests;
+- semantic-classifier schema/fallback tests;
+- relationship-bar progression and decay tests;
+- sentiment expiry and provenance tests;
+- live plugin hook tests with temporary `HERMES_HOME`;
+- restart/reload tests for cached runtime behavior.
+
+## Safety constraints
+
+- Simulated affect is behavioral state, not proof of consciousness.
+- Do not use sadness, fear, anger, or relationship values to guilt, threaten, punish,
+  pressure, or demand the user's attention.
+- Preserve ordinary helpfulness regardless of mood or relationship state.
+- Keep adult intimacy separate from emotional state and never use affect to create
+  coercive dependency.
+- Make every persistent change inspectable and user-resettable.

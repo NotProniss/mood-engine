@@ -9,7 +9,9 @@ A standalone, offline engine for modeling inspectable emotional state, with an o
 - In-memory runtime coordinator for the full event-to-guidance pipeline
 - Configurable baseline values in `config/baseline_rules.json` (currently all zero)
 - Data-driven event effects in `config/emotion_rules.json`
-- Contextual appraisal for explained absences (`EventContext`)
+- Conversation-context classification for completed chat rounds
+- Neutral `Casual Conversation` baseline with no emotion change
+- One primary emotion link per non-casual conversation type
 - Configurable half-lives in `config/decay_rules.json`
 - Versioned runtime state persistence
 - Float precision internally, whole-number floor-rounded display values
@@ -113,8 +115,15 @@ The plugin registers an explicit slash command for controlled testing:
 /mood reset
 ```
 
-`/mood status` reports all persistent emotion values and focused response guidance. Ordinary completed conversations do not change
-emotion values; configured decay still moves values toward their baselines.
+`/mood status` reports:
+
+- the last classified conversation type and classifier confidence for this session;
+- all persistent emotion values;
+- focused emotion, raw intensity, tone, and optional behavior guidance.
+
+Conversation classification is session-local and resets to Casual Conversation when
+Hermes restarts or the session is reset. After changing plugin code, restart Hermes
+before testing so the running process loads the new plugin module.
 
 Supported emotions are `joy`, `sadness`, `anger`, `fear`, and `disgust`. Values
 must be numbers from 0 through 100. `/mood reset` restores all five values to
@@ -122,10 +131,27 @@ the configured baselines. The command updates the live cached runtime
 and persists the result immediately, so the next `pre_llm_call` can derive new
 guidance without restarting the process.
 
-The command is registered when Hermes starts or loads the plugin. After changing
-plugin code, restart Hermes before testing. Avoid editing `state.json` manually
-while Hermes is running: the plugin keeps an in-memory runtime and may write that
-cached state back during session reset.
+## Chat-round classification
+
+After a completed turn, the plugin classifies the user's message into one simple
+conversation context: `casual`, `pleasant`, `funny`, `awkward`, `unpleasant`,
+`offensive`, or `hurtful`. Casual is neutral and creates no event. The other
+contexts map to exactly one primary emotion:
+
+- `pleasant` → joy +1
+- `funny` → joy +2
+- `awkward` → fear +1
+- `unpleasant` → disgust +1
+- `offensive` → anger +1
+- `hurtful` → sadness +1
+
+The classifier is deterministic and conservative. It does not use an extra LLM
+call, and unmatched or ambiguous wording remains Casual Conversation.
+
+After changing plugin code, restart Hermes before testing so the running process
+loads the new module. Avoid editing `state.json` manually while Hermes is running:
+the plugin keeps an in-memory runtime and may write that cached state back during
+session reset.
 
 ## Runtime state
 

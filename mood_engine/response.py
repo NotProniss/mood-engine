@@ -1,109 +1,62 @@
-"""Focused-emotion response guidance."""
+"""Minimal focused response guidance derived from emotion state."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-import json
-import math
-from pathlib import Path
 
-from .state import EmotionState
+from .state import EMOTIONS, EmotionState
 
 
-TONE_PROFILES_PATH = Path(__file__).parents[1] / "config" / "tone_profiles.json"
-with TONE_PROFILES_PATH.open(encoding="utf-8") as file:
-    TONE_PROFILES = json.load(file)
+_TONE_BANDS = {
+    "joy": ((24, "content"), (49, "happy"), (74, "excited"), (100, "ecstatic")),
+    "sadness": ((24, "downcast"), (49, "sad"), (74, "heavy"), (100, "sorrowful")),
+    "anger": ((24, "annoyed"), (49, "irritated"), (74, "aggressive"), (100, "scathing")),
+    "fear": ((24, "uneasy"), (49, "wary"), (74, "anxious"), (100, "horrified")),
+    "disgust": ((24, "put_off"), (49, "grossed_out"), (74, "disgusted"), (100, "repulsed")),
+}
+
+_BEHAVIOR_PROFILES = {
+    "sorrowful": "Speak gently and reflectively. Avoid cheerfulness, teasing, and excessive enthusiasm.",
+}
 
 
 @dataclass(frozen=True)
-class ResponseGuidance:
-    """The complete prompt-facing mood guidance."""
+class FocusedResponse:
+    """The smallest inspectable response-style projection of current affect."""
 
     focus: str
     intensity: float
     tone: str
     behavior: str | None = None
 
-    def to_dict(self) -> dict[str, int | str]:
-        values: dict[str, int | str] = {
+    def to_dict(self) -> dict[str, object]:
+        return {
             "focus": self.focus,
-            "intensity": math.floor(self.intensity),
+            "intensity": self.intensity,
             "tone": self.tone,
+            "behavior": self.behavior,
         }
+
+    def to_prompt(self) -> str:
+        prompt = f"focus={self.focus}; tone={self.tone}"
         if self.behavior:
-            values["behavior"] = self.behavior
-        return values
-
-    def to_prompt_context(self) -> str:
-        """Return only the intentionally exposed prompt-facing guidance."""
-        context = f"focus={self.focus}; tone={self.tone}"
-        if self.behavior:
-            context += f"; behavior={self.behavior}"
-        return context
+            prompt += f"; behavior={self.behavior}"
+        return prompt
 
 
-def _focused_emotion(state: EmotionState) -> tuple[str, float]:
-    focus, intensity = max(state.to_dict().items(), key=lambda item: item[1])
+def _tone_for(focus: str, intensity: float) -> str:
+    for upper_bound, tone in _TONE_BANDS[focus]:
+        if intensity <= upper_bound:
+            return tone
+    return _TONE_BANDS[focus][-1][1]
+
+
+def derive_focused_response(state: EmotionState) -> FocusedResponse:
+    """Select the highest raw emotion and map it to a bounded tone label."""
+    focus = max(EMOTIONS, key=lambda emotion: getattr(state, emotion))
+    intensity = getattr(state, focus)
     if intensity <= 0:
-        return "neutral", 0.0
-    return focus, intensity
+        return FocusedResponse("neutral", 0, "neutral")
 
-
-def _joy_tone(intensity: float) -> str:
-    if intensity >= 75:
-        return "ecstatic"
-    if intensity >= 50:
-        return "excited"
-    if intensity >= 25:
-        return "happy"
-    return "content"
-
-
-def _focused_tone(focus: str, intensity: float) -> str:
-    if focus == "joy":
-        return _joy_tone(intensity)
-    if focus == "anger":
-        if intensity >= 75:
-            return "scathing"
-        if intensity >= 50:
-            return "aggressive"
-        if intensity >= 25:
-            return "irritated"
-        return "annoyed"
-    if focus == "sadness":
-        if intensity >= 75:
-            return "sorrowful"
-        if intensity >= 50:
-            return "heavy"
-        if intensity >= 25:
-            return "sad"
-        return "downcast"
-    if focus == "fear":
-        if intensity >= 75:
-            return "horrified"
-        if intensity >= 50:
-            return "anxious"
-        if intensity >= 25:
-            return "wary"
-        return "uneasy"
-    if focus == "disgust":
-        if intensity >= 75:
-            return "repulsed"
-        if intensity >= 50:
-            return "disgusted"
-        if intensity >= 25:
-            return "grossed_out"
-        return "put_off"
-    return "neutral"
-
-
-def derive_response_guidance(state: EmotionState) -> ResponseGuidance:
-    """Select the highest emotion and map its intensity to a tone string."""
-    focus, intensity = _focused_emotion(state)
-    profile = TONE_PROFILES.get(_focused_tone(focus, intensity), {})
-    return ResponseGuidance(
-        focus=focus,
-        intensity=intensity,
-        tone=_focused_tone(focus, intensity),
-        behavior=profile.get("behavior"),
-    )
+    tone = _tone_for(focus, intensity)
+    return FocusedResponse(focus, intensity, tone, _BEHAVIOR_PROFILES.get(tone))

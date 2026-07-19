@@ -1,4 +1,4 @@
-"""In-memory coordinator for emotion state and response guidance."""
+"""In-memory coordinator for affect state and focused response guidance."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from .decay import DEFAULT_BASELINES, DEFAULT_HALF_LIVES_HOURS, decay_state
-from .events import EventContext, EventRules
+from .events import EventRules
 from .persistence import load_state as load_persisted_state
 from .persistence import save_state as save_persisted_state
-from .response import ResponseGuidance, derive_response_guidance
+from .response import FocusedResponse, derive_focused_response
 from .state import EmotionState
 
 
@@ -22,17 +22,14 @@ class RuntimeSnapshot:
     """The complete inspectable output of one runtime evaluation."""
 
     state: EmotionState
-    guidance: ResponseGuidance
+    focused: FocusedResponse
 
     def to_dict(self) -> dict[str, dict]:
-        return {
-            "emotions": self.state.to_dict(),
-            "guidance": self.guidance.to_dict(),
-        }
+        return {"emotions": self.state.to_dict(), "focused": self.focused.to_dict()}
 
 
 class AffectRuntime:
-    """Coordinate state updates and derived output without external side effects."""
+    """Coordinate state updates and focused guidance without external side effects."""
 
     def __init__(
         self,
@@ -58,64 +55,26 @@ class AffectRuntime:
         half_lives_hours: dict[str, float] | None = None,
         baselines: dict[str, float] | None = None,
     ) -> "AffectRuntime":
-        """Load persisted state, applying elapsed decay exactly once."""
-        state, updated_at = load_persisted_state(
-            path,
-            now=now,
-            half_lives_hours=half_lives_hours,
-            baselines=baselines,
-        )
-        return cls(
-            state=state,
-            event_rules=event_rules,
-            half_lives_hours=half_lives_hours,
-            baselines=baselines,
-            updated_at=updated_at,
-        )
+        state, updated_at = load_persisted_state(path, now=now, half_lives_hours=half_lives_hours, baselines=baselines)
+        return cls(state=state, event_rules=event_rules, half_lives_hours=half_lives_hours, baselines=baselines, updated_at=updated_at)
 
-    def save_state(
-        self,
-        path: str | Path,
-        *,
-        updated_at: datetime | None = None,
-    ) -> None:
-        """Persist emotion state and timestamp, excluding derived outputs."""
+    def save_state(self, path: str | Path, *, updated_at: datetime | None = None) -> None:
         timestamp = updated_at or self.updated_at or datetime.now(timezone.utc)
         save_persisted_state(path, self.state, timestamp)
         self.updated_at = timestamp
 
     def inspect(self) -> RuntimeSnapshot:
-        """Return current state plus focused response guidance."""
-        guidance = derive_response_guidance(self.state)
-        return RuntimeSnapshot(self.state, guidance)
+        return RuntimeSnapshot(self.state, derive_focused_response(self.state))
 
     def advance_time(self, *, elapsed_hours: float) -> RuntimeSnapshot:
-        """Apply decay without creating an event."""
-        self.state = decay_state(
-            self.state,
-            elapsed_hours,
-            half_lives_hours=self.half_lives_hours,
-            baselines=self.baselines,
-        )
+        self.state = decay_state(self.state, elapsed_hours, half_lives_hours=self.half_lives_hours, baselines=self.baselines)
         if self.updated_at is not None:
             self.updated_at += timedelta(hours=elapsed_hours)
         return self.inspect()
 
-    def process_event(
-        self,
-        event_name: str,
-        *,
-        elapsed_hours: float = 0,
-        context: EventContext | None = None,
-    ) -> RuntimeSnapshot:
-        """Apply decay, process one event, and return the resulting snapshot."""
-        self.state = decay_state(
-            self.state,
-            elapsed_hours,
-            half_lives_hours=self.half_lives_hours,
-            baselines=self.baselines,
-        )
-        self.state = self.event_rules.apply(self.state, event_name, context)
+    def process_event(self, event_name: str, *, elapsed_hours: float = 0) -> RuntimeSnapshot:
+        self.state = decay_state(self.state, elapsed_hours, half_lives_hours=self.half_lives_hours, baselines=self.baselines)
+        self.state = self.event_rules.apply(self.state, event_name)
         if self.updated_at is not None:
             self.updated_at += timedelta(hours=elapsed_hours)
         return self.inspect()

@@ -1,33 +1,20 @@
 {
-  "warm_conversation": {
-    "joy": 1,
-    "sadness": -1
+  "pleasant_conversation": {
+    "joy": 1
   },
-  "long_absence": {
-    "sadness": 4
+  "funny_conversation": {
+    "joy": 2
   },
-  "unexpected_problem": {
-    "fear": 5
+  "awkward_encounter": {
+    "fear": 1
   },
-  "harsh_correction": {
-    "anger": 4,
-    "sadness": 2
+  "unpleasant_conversation": {
+    "disgust": 1
   },
-  "interesting_discovery": {
-    "joy": 6
+  "offensive_conversation": {
+    "anger": 1
   },
-  "quiet_companionship": {
-    "joy": 3,
-    "sadness": -1
-  },
-  "repair_after_conflict": {
-    "joy": 5,
-    "anger": -4,
-    "sadness": -2
-  },
-  "return_after_absence": {
-    "joy": 6,
-    "sadness": -3,
-    "fear": -1
+  "hurtful_conversation": {
+    "sadness": 1
   }
 }
