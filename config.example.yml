@@ -1,0 +1,32 @@
+classifier:
+  mode: semantic
+  fallback: rules
+  minimum_confidence: 0.70
+  max_tokens: 96
+
+mood_swing:
+  active_preset: default
+  presets:
+    default:
+      formula: fixed
+    beta:
+      formula: base_times_sum
+      description: "base × ((1 + confidence) + (1 + intensity))"
+
+decay:
+  half_lives_hours:
+    joy: 6
+    anger: 2
+    fear: 4
+    disgust: 8
+    sadness: 24
+  baselines:
+    joy: 0
+    sadness: 0
+    anger: 0
+    fear: 0
+    disgust: 0
+
+paths:
+  emotion_rules: config/emotion_rules.json
+  conversation_signals: config/conversation_signals.json

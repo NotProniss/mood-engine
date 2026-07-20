@@ -6,6 +6,7 @@ import json
 from numbers import Real
 from pathlib import Path
 
+from .config import PLUGIN_CONFIG
 from .state import EMOTIONS, EmotionState
 
 
@@ -61,8 +62,14 @@ def load_half_lives(path: str | Path) -> dict[str, float]:
     return half_lives
 
 
-DEFAULT_HALF_LIVES_HOURS = load_half_lives(DEFAULT_CONFIG_PATH)
-DEFAULT_BASELINES = load_baselines(DEFAULT_BASELINE_CONFIG_PATH)
+DEFAULT_HALF_LIVES_HOURS = {
+    emotion: float(value)
+    for emotion, value in PLUGIN_CONFIG.get("decay", {}).get("half_lives_hours", {}).items()
+} or load_half_lives(DEFAULT_CONFIG_PATH)
+DEFAULT_BASELINES = {
+    emotion: float(value)
+    for emotion, value in PLUGIN_CONFIG.get("decay", {}).get("baselines", {}).items()
+} or load_baselines(DEFAULT_BASELINE_CONFIG_PATH)
 
 
 def decay_state(

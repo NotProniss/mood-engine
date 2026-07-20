@@ -15,8 +15,9 @@ self-reinforcement.
 - Data-driven event effects in `config/emotion_rules.json`
 - Conversation-context classification for completed chat rounds
 - Neutral `Casual Conversation` baseline with no emotion change
-- One primary emotion link per non-casual conversation type
-- Configurable half-lives in `config/decay_rules.json`
+- Configurable mood-swing presets for fixed or confidence/intensity-scaled deltas
+- Centralized tuning knobs in `config.yml` (from tracked `config.example.yml`) for classifier, mood swing, decay, and baselines
+- Configurable half-lives in the centralized YAML configuration
 - Versioned runtime state persistence
 - Float precision internally, whole-number floor-rounded display values
 
@@ -157,6 +158,19 @@ The preferred classifier mode is semantic: it calls Hermes' active model through
 confidence, and intensity. If semantic analysis is unavailable, invalid, or below
 the confidence threshold, the configured pattern fallback is used. Unmatched or
 ambiguous wording remains Casual Conversation.
+
+The active mood-swing preset is configured in `config.yml` under
+`mood_swing.active_preset`. Copy `config.example.yml` to `config.yml` to create
+a local override; if no override exists, the plugin automatically uses the
+example defaults. `default` preserves the original fixed event deltas.
+`beta` applies:
+
+```text
+base delta × ((1 + confidence) + (1 + intensity))
+```
+
+This experimental scaling is bounded by the emotion state's `0..100` limits.
+Change `active_preset` and restart Hermes to switch behavior.
 
 After changing plugin code, restart Hermes before testing so the running process
 loads the new module. Avoid editing `state.json` manually while Hermes is running:

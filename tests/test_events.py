@@ -44,6 +44,22 @@ class EventRulesTests(unittest.TestCase):
             state = self.rules.apply(state, "funny")
         self.assertEqual(state.joy, 100)
 
+    def test_beta_mood_swing_uses_confidence_and_intensity(self):
+        beta_rules = EventRules(
+            self.rules.rules,
+            {
+                "active_preset": "beta",
+                "presets": {"beta": {"formula": "base_times_sum"}},
+            },
+        )
+        updated = beta_rules.apply(
+            EmotionState(),
+            "pleasant",
+            confidence=0.85,
+            intensity=0.40,
+        )
+        self.assertAlmostEqual(updated.joy, 3.25)
+
 
 if __name__ == "__main__":
     unittest.main()

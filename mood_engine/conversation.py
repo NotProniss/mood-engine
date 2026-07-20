@@ -5,21 +5,19 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 
-CONFIG_DIR = Path(__file__).parents[1] / "config"
-SIGNALS_PATH = CONFIG_DIR / "conversation_signals.json"
-EMOTION_RULES_PATH = CONFIG_DIR / "emotion_rules.json"
-CLASSIFIER_PATH = CONFIG_DIR / "conversation_classifier.json"
+from .config import PLUGIN_CONFIG, config_path
+
+SIGNALS_PATH = config_path(PLUGIN_CONFIG["paths"]["conversation_signals"])
+EMOTION_RULES_PATH = config_path(PLUGIN_CONFIG["paths"]["emotion_rules"])
 
 with SIGNALS_PATH.open(encoding="utf-8") as file:
     CONVERSATION_SIGNALS: dict[str, dict[str, Any]] = json.load(file)
 with EMOTION_RULES_PATH.open(encoding="utf-8") as file:
     EMOTION_RULES: dict[str, dict[str, float]] = json.load(file)
-with CLASSIFIER_PATH.open(encoding="utf-8") as file:
-    CLASSIFIER_CONFIG: dict[str, Any] = json.load(file)
+CLASSIFIER_CONFIG: dict[str, Any] = dict(PLUGIN_CONFIG.get("classifier", {}))
 
 # emotion_rules.json is the source of truth for supported non-casual labels.
 # Casual is the reserved neutral baseline and has no event rule.

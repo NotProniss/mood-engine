@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from .config import PLUGIN_CONFIG, config_path
 from .decay import DEFAULT_BASELINES, DEFAULT_HALF_LIVES_HOURS, decay_state
 from .events import EventRules
 from .persistence import load_state as load_persisted_state
@@ -14,7 +15,7 @@ from .response import FocusedResponse, derive_focused_response
 from .state import EmotionState
 
 
-DEFAULT_RULES_PATH = Path(__file__).parents[1] / "config" / "emotion_rules.json"
+DEFAULT_RULES_PATH = config_path(PLUGIN_CONFIG["paths"]["emotion_rules"])
 
 
 @dataclass(frozen=True)
@@ -72,9 +73,21 @@ class AffectRuntime:
             self.updated_at += timedelta(hours=elapsed_hours)
         return self.inspect()
 
-    def process_event(self, event_name: str, *, elapsed_hours: float = 0) -> RuntimeSnapshot:
+    def process_event(
+        self,
+        event_name: str,
+        *,
+        elapsed_hours: float = 0,
+        confidence: float = 1.0,
+        intensity: float = 0.0,
+    ) -> RuntimeSnapshot:
         self.state = decay_state(self.state, elapsed_hours, half_lives_hours=self.half_lives_hours, baselines=self.baselines)
-        self.state = self.event_rules.apply(self.state, event_name)
+        self.state = self.event_rules.apply(
+            self.state,
+            event_name,
+            confidence=confidence,
+            intensity=intensity,
+        )
         if self.updated_at is not None:
             self.updated_at += timedelta(hours=elapsed_hours)
         return self.inspect()

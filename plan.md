@@ -71,6 +71,11 @@ focus=joy; tone=content
 all emotion values, focused emotion, focused intensity, and tone. `/mood set` and
 `/mood reset` remain explicit inspection/testing controls.
 
+Mood deltas are selected by `config.yml` (or the tracked `config.example.yml` fallback) under `mood_swing`. The `default` preset keeps
+fixed configured deltas; the experimental `beta` preset scales each event by
+`(1 + confidence) + (1 + intensity)`, with the emotion state still clamped to
+`0..100`.
+
 ## Near-term roadmap
 
 ### 1. Tune the configured conversation vocabulary

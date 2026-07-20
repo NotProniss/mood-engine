@@ -173,7 +173,11 @@ def _post_llm_call(**kwargs: Any) -> None:
         global _LAST_CONVERSATION
         _LAST_CONVERSATION = classification
         if classification.event_name is not None:
-            _get_runtime().process_event(classification.event_name)
+            _get_runtime().process_event(
+                classification.event_name,
+                confidence=classification.confidence,
+                intensity=classification.intensity,
+            )
         _save_runtime()
 
 
