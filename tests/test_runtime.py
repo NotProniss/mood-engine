@@ -30,18 +30,18 @@ class AffectRuntimeTests(unittest.TestCase):
 
     def test_process_event_updates_state_and_focus(self):
         runtime = AffectRuntime(event_rules=self.rules)
-        snapshot = runtime.process_event("pleasant_conversation")
+        snapshot = runtime.process_event("pleasant")
         self.assertEqual(snapshot.state.joy, 1)
         self.assertEqual(snapshot.focused.to_prompt(), "focus=joy; tone=content")
 
     def test_process_event_applies_decay_before_event(self):
         runtime = AffectRuntime(state=EmotionState(joy=80), event_rules=self.rules)
-        snapshot = runtime.process_event("funny_conversation", elapsed_hours=6)
+        snapshot = runtime.process_event("funny", elapsed_hours=6)
         self.assertAlmostEqual(snapshot.state.joy, 42.0)
 
     def test_process_event_updates_sadness_focus(self):
         runtime = AffectRuntime(event_rules=self.rules)
-        snapshot = runtime.process_event("hurtful_conversation")
+        snapshot = runtime.process_event("hurtful")
         self.assertEqual(snapshot.state.sadness, 1)
         self.assertEqual(snapshot.focused.to_prompt(), "focus=sadness; tone=downcast")
 

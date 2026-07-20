@@ -84,7 +84,7 @@ def test_post_llm_hook_records_and_persists_warm_interaction(monkeypatch, tmp_pa
     assert '"joy": 0' in state_path.read_text(encoding="utf-8")
 
 
-def test_post_llm_hook_classifies_offensive_conversation(monkeypatch, tmp_path):
+def test_post_llm_hook_classifies_offensive(monkeypatch, tmp_path):
     monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
     plugin = load_plugin()
     context = FakeContext()
@@ -113,7 +113,7 @@ def test_mood_status_reports_last_conversation_and_confidence(monkeypatch, tmp_p
 
     result = context.commands["mood"][0]("status")
 
-    assert "Conversation: type=funny; confidence=0.80" in result
+    assert "Conversation: type=funny; confidence=0.80; intensity=0.50" in result
     assert "Guidance: focus=joy" in result
     assert "intensity=2" in result
 

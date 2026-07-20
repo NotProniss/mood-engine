@@ -15,17 +15,17 @@ class EventRulesTests(unittest.TestCase):
 
     def test_conversation_events_have_one_primary_emotion_each(self):
         cases = (
-            ("pleasant_conversation", "joy"),
-            ("funny_conversation", "joy"),
-            ("awkward_encounter", "fear"),
-            ("unpleasant_conversation", "disgust"),
-            ("offensive_conversation", "anger"),
-            ("hurtful_conversation", "sadness"),
+            ("pleasant", "joy"),
+            ("funny", "joy"),
+            ("awkward", "fear"),
+            ("unpleasant", "disgust"),
+            ("offensive", "anger"),
+            ("hurtful", "sadness"),
         )
         for event_name, emotion in cases:
             with self.subTest(event_name=event_name):
                 updated = self.rules.apply(EmotionState(), event_name)
-                self.assertEqual(getattr(updated, emotion), 1 if event_name != "funny_conversation" else 2)
+                self.assertEqual(getattr(updated, emotion), 1 if event_name != "funny" else 2)
                 other_values = updated.to_dict()
                 other_values.pop(emotion)
                 self.assertTrue(all(value == 0 for value in other_values.values()))
@@ -41,7 +41,7 @@ class EventRulesTests(unittest.TestCase):
     def test_repeated_events_remain_bounded(self):
         state = EmotionState()
         for _ in range(60):
-            state = self.rules.apply(state, "funny_conversation")
+            state = self.rules.apply(state, "funny")
         self.assertEqual(state.joy, 100)
 
 

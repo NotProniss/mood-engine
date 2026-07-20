@@ -1,20 +1,20 @@
 {
-  "pleasant_conversation": {
+  "pleasant": {
     "joy": 1
   },
-  "funny_conversation": {
+  "funny": {
     "joy": 2
   },
-  "awkward_encounter": {
+  "awkward": {
     "fear": 1
   },
-  "unpleasant_conversation": {
+  "unpleasant": {
     "disgust": 1
   },
-  "offensive_conversation": {
+  "offensive": {
     "anger": 1
   },
-  "hurtful_conversation": {
+  "hurtful": {
     "sadness": 1
   }
 }

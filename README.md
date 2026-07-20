@@ -117,7 +117,7 @@ The plugin registers an explicit slash command for controlled testing:
 
 `/mood status` reports:
 
-- the last classified conversation type and classifier confidence for this session;
+- the last classified conversation type, classifier confidence, and classifier intensity for this session;
 - all persistent emotion values;
 - focused emotion, raw intensity, tone, and optional behavior guidance.
 
@@ -145,8 +145,14 @@ contexts map to exactly one primary emotion:
 - `offensive` → anger +1
 - `hurtful` → sadness +1
 
-The classifier is deterministic and conservative. It does not use an extra LLM
-call, and unmatched or ambiguous wording remains Casual Conversation.
+The vocabulary and event labels are configuration-driven. `config/emotion_rules.json`
+is the source of truth for allowed labels and their emotion deltas;
+`config/conversation_signals.json` supplies the deterministic fallback patterns.
+The preferred classifier mode is semantic: it calls Hermes' active model through
+`ctx.llm.complete_structured(...)` and asks for a schema-validated label,
+confidence, and intensity. If semantic analysis is unavailable, invalid, or below
+the confidence threshold, the configured pattern fallback is used. Unmatched or
+ambiguous wording remains Casual Conversation.
 
 After changing plugin code, restart Hermes before testing so the running process
 loads the new module. Avoid editing `state.json` manually while Hermes is running:

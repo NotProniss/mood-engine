@@ -1,0 +1,7 @@
+{
+  "mode": "semantic",
+  "fallback": "rules",
+  "minimum_confidence": 0.70,
+  "max_tokens": 96,
+  "signals_file": "conversation_signals.json"
+}

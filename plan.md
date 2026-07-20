@@ -39,10 +39,13 @@ offensive  → anger +1
 hurtful    → sadness +1
 ```
 
-The vocabulary is configuration-driven in `config/conversation_signals.json`.
-The classifier is currently deterministic and conservative. It reads the user's
-message; the assistant response is deliberately not treated as a signal yet, so
-Lilly cannot manufacture her own mood event through her wording.
+The allowed labels and emotion deltas come from `config/emotion_rules.json`.
+`config/conversation_signals.json` supplies the deterministic fallback patterns.
+The preferred classifier mode is semantic: it uses Hermes' active model through
+`ctx.llm.complete_structured(...)` and returns a schema-validated label,
+confidence, and intensity. If semantic analysis is unavailable, invalid, or below
+threshold, the configured pattern fallback is used. The assistant response is not
+treated as a signal, so Lilly cannot manufacture her own mood event.
 
 ### Persistent emotion state
 
@@ -96,32 +99,30 @@ example, several funny rounds could strengthen Funny Conversation, while one
 neutral message could leave it unchanged rather than immediately returning to
 Casual.
 
-### 3. Add semantic sentiment analysis behind the same interface
+### 3. Improve semantic sentiment analysis
 
-Long term, replace or supplement the configured phrase matcher with a structured
-semantic classifier that returns:
+The semantic classifier is now implemented behind the same conversation interface.
+It returns:
 
 ```json
 {
   "conversation_type": "pleasant",
   "confidence": 0.86,
-  "intensity": 0.42,
-  "evidence": ["user expressed appreciation"]
+  "intensity": 0.42
 }
 ```
 
-The semantic layer must remain separate from emotion updates. It classifies; the
-conversation rules decide deltas. Require strict schema validation, confidence
-thresholds, a Casual fallback, bounded output, and no direct model-written mood
-numbers.
+The semantic layer remains separate from emotion updates. It classifies; the
+conversation rules decide deltas. The allowed-label enum is generated from
+`config/emotion_rules.json`, with strict schema validation, confidence thresholds,
+a Casual fallback, bounded output, and no direct model-written mood numbers.
 
-Possible rollout:
+Future improvements:
 
-1. deterministic config classifier remains the fallback;
-2. semantic classifier runs in shadow mode and is logged for comparison;
-3. only high-confidence semantic results affect state;
-4. ambiguous results remain Casual;
-5. user-visible status exposes the chosen classifier result.
+1. add shadow-mode comparison against the deterministic fallback;
+2. expose classifier mode and fallback counts in status;
+3. tune prompt examples using observed false positives/negatives;
+4. consider caching or skipping obviously Casual rounds to reduce token cost.
 
 ### 4. Consider additional emotions
 

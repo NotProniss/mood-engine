@@ -1,58 +1,59 @@
 {
   "hurtful": {
-    "event": "hurtful_conversation",
     "confidence": 0.8,
     "patterns": [
       "\\bthat hurt\\b",
       "\\b(?:you|that) (?:hurt|dismissed|ignored) me\\b",
-      "\\bmade me (?:sad|upset)\\b",
+      "\\bhurt my feelings\\b",
+      "\\bmade me feel (?:bad|sad|upset)\\b",
       "\\bfeel(?:ing)? rejected\\b",
-      "\\bthat was hurtful\\b",
-      "\\bdeeply disappointed\\b"
+      "\\bthat was (?:hurtful|painful)\\b",
+      "\\b(?:deeply )?disappointed me\\b",
+      "\\bi(?:'m| am) upset about that\\b"
     ]
   },
   "offensive": {
-    "event": "offensive_conversation",
     "confidence": 0.8,
     "patterns": [
       "\\boffensive\\b",
-      "\\b(?:you(?:'re| are)|that was) (?:rude|insulting)\\b",
+      "\\b(?:you(?:'re| are)|that was) (?:rude|insulting|mean)\\b",
       "\\b(?:shut up|idiot|stupid)\\b",
-      "\\bthat was an insult\\b"
+      "\\bthat was an insult\\b",
+      "\\b(?:condescending|talking down to me)\\b"
     ]
   },
   "awkward": {
-    "event": "awkward_encounter",
     "confidence": 0.8,
     "patterns": [
       "\\bawkward\\b",
       "\\bembarrass(?:ed|ing|ment)\\b",
       "\\buncomfortable\\b",
-      "\\bthat was weird\\b"
+      "\\bthat was weird\\b",
+      "\\bdon(?:'t| not) know what to say\\b",
+      "\\b(?:cringe|socially awkward)\\b"
     ]
   },
   "unpleasant": {
-    "event": "unpleasant_conversation",
     "confidence": 0.8,
     "patterns": [
       "\\bunpleasant\\b",
-      "\\b(?:annoying|gross|disgusting)\\b",
+      "\\b(?:annoying|irritating|gross|disgusting)\\b",
       "\\bugh\\b",
-      "\\bi hate this\\b"
+      "\\bi hate this\\b",
+      "\\bthat was a miserable conversation\\b"
     ]
   },
   "funny": {
-    "event": "funny_conversation",
     "confidence": 0.8,
     "patterns": [
-      "\\b(?:lol|lmao|haha|hahaha)\\b",
-      "\\b(?:funny|hilarious)\\b",
+      "\\b(?:lol|lmao|haha|hahaha|hehe)\\b",
+      "\\b(?:funny|hilarious|amusing)\\b",
       "\\bmade me laugh\\b",
-      "\\bthat joke\\b"
+      "\\b(?:that|your) joke\\b",
+      "\\bcracked me up\\b"
     ]
   },
   "pleasant": {
-    "event": "pleasant_conversation",
     "confidence": 0.8,
     "patterns": [
       "\\bnice to talk\\b",
@@ -60,7 +61,14 @@
       "\\b(?:glad|appreciate)\\b",
       "\\bthat helps\\b",
       "\\bsounds good\\b",
-      "\\b(?:great|lovely)\\b"
+      "\\b(?:great|lovely|wonderful)\\b",
+      "\\benjoyed (?:talking|that)\\b",
+      "\\b(?:nice|good) chat\\b",
+      "\\bgood to hear from you\\b",
+      "\\bhappy we talked\\b",
+      "\\bfeel(?:ing)? better\\b",
+      "\\beasy to talk to\\b",
+      "\\bthat was kind of you\\b"
     ]
   }
 }

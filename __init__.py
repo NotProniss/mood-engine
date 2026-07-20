@@ -12,6 +12,7 @@ from typing import Any
 
 _RUNTIME: AffectRuntime | None = None
 _RUNTIME_PATH: Path | None = None
+_PLUGIN_CTX: Any = None
 _LAST_CONVERSATION: Any = None
 
 
@@ -48,9 +49,13 @@ def _format_status() -> str:
     guidance = snapshot.focused
     conversation = _LAST_CONVERSATION
     conversation_status = (
-        "type=casual; confidence=1.00"
+        "type=casual; confidence=1.00; intensity=0.00"
         if conversation is None
-        else f"type={conversation.conversation_type}; confidence={conversation.confidence:.2f}"
+        else (
+            f"type={conversation.conversation_type}; "
+            f"confidence={conversation.confidence:.2f}; "
+            f"intensity={conversation.intensity:.2f}"
+        )
     )
     return (
         f"Conversation: {conversation_status}\n"
@@ -158,9 +163,10 @@ def _pre_llm_call(**_kwargs: Any) -> dict[str, str]:
 def _post_llm_call(**kwargs: Any) -> None:
     """Appraise one completed user turn, then persist the runtime."""
     if kwargs.get("assistant_response"):
-        from .mood_engine.conversation import classify_round
+        from .mood_engine.conversation import classify_round_with_semantics
 
-        classification = classify_round(
+        classification = classify_round_with_semantics(
+            _PLUGIN_CTX,
             kwargs.get("user_message"),
             kwargs.get("assistant_response"),
         )
@@ -189,6 +195,8 @@ def _on_session_reset(**_kwargs: Any) -> None:
 
 def register(ctx: Any) -> None:
     """Register Mood Engine's optional lifecycle integration with Hermes."""
+    global _PLUGIN_CTX
+    _PLUGIN_CTX = ctx
     ctx.register_command(
         "mood",
         _handle_mood_command,

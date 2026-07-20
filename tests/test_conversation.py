@@ -1,6 +1,12 @@
 import unittest
+from types import SimpleNamespace
 
-from mood_engine.conversation import ConversationClassification, CONVERSATION_TYPES, classify_round
+from mood_engine.conversation import (
+    CONVERSATION_TYPES,
+    ConversationClassification,
+    classify_round,
+    classify_round_with_semantics,
+)
 
 
 class ConversationClassificationTests(unittest.TestCase):
@@ -26,12 +32,12 @@ class ConversationClassificationTests(unittest.TestCase):
             "hurtful": "That hurt and made me sad.",
         }
         expected_events = {
-            "pleasant": "pleasant_conversation",
-            "funny": "funny_conversation",
-            "awkward": "awkward_encounter",
-            "unpleasant": "unpleasant_conversation",
-            "offensive": "offensive_conversation",
-            "hurtful": "hurtful_conversation",
+            "pleasant": "pleasant",
+            "funny": "funny",
+            "awkward": "awkward",
+            "unpleasant": "unpleasant",
+            "offensive": "offensive",
+            "hurtful": "hurtful",
         }
         for kind, message in examples.items():
             with self.subTest(kind=kind):
@@ -47,6 +53,57 @@ class ConversationClassificationTests(unittest.TestCase):
     def test_assistant_response_does_not_create_events_by_itself(self):
         result = classify_round("Okay.", "That was hilarious, haha!")
         self.assertTrue(result.is_casual)
+
+    def test_expanded_word_banks_cover_natural_phrases(self):
+        examples = {
+            "pleasant": "I really enjoyed talking with you.",
+            "funny": "That cracked me up.",
+            "awkward": "I don't know what to say.",
+            "unpleasant": "That was really irritating.",
+            "offensive": "You were being condescending.",
+            "hurtful": "You hurt my feelings.",
+        }
+        for kind, message in examples.items():
+            with self.subTest(kind=kind):
+                self.assertEqual(classify_round(message).conversation_type, kind)
+
+    def test_semantic_classifier_uses_emotion_rules_labels(self):
+        class FakeLLM:
+            def complete_structured(self, **kwargs):
+                self.schema = kwargs["json_schema"]
+                return SimpleNamespace(
+                    parsed={
+                        "conversation_type": "pleasant",
+                        "confidence": 0.91,
+                        "intensity": 0.4,
+                    }
+                )
+
+        context = SimpleNamespace(llm=FakeLLM())
+        result = classify_round_with_semantics(context, "That was nice.")
+
+        self.assertEqual(result, ConversationClassification("pleasant", 0.91, 0.4, "pleasant"))
+        self.assertEqual(context.llm.schema["properties"]["conversation_type"]["enum"], list(CONVERSATION_TYPES))
+
+    def test_low_confidence_semantic_result_falls_back_to_rules(self):
+        class FakeLLM:
+            def complete_structured(self, **_kwargs):
+                return SimpleNamespace(
+                    parsed={
+                        "conversation_type": "pleasant",
+                        "confidence": 0.2,
+                        "intensity": 0.4,
+                    }
+                )
+
+        result = classify_round_with_semantics(SimpleNamespace(llm=FakeLLM()), "Thanks, that helps.")
+        self.assertEqual(result.conversation_type, "pleasant")
+        self.assertEqual(result.event_name, "pleasant")
+
+    def test_ambiguous_short_replies_remain_casual(self):
+        for message in ("fine", "okay", "sure", "yep", "I see"):
+            with self.subTest(message=message):
+                self.assertTrue(classify_round(message).is_casual)
 
 
 if __name__ == "__main__":

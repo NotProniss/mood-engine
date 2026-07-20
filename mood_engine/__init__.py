@@ -6,7 +6,7 @@ from .decay import (
     load_half_lives,
 )
 from .events import EventRules, UnknownEventError
-from .conversation import ConversationClassification, classify_round
+from .conversation import ConversationClassification, classify_round, classify_round_with_semantics
 from .persistence import StateFileError, load_state, save_state
 from .response import FocusedResponse, derive_focused_response
 from .runtime import AffectRuntime, RuntimeSnapshot

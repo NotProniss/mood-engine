@@ -52,7 +52,7 @@ class PersistentAffectRuntimeTests(unittest.TestCase):
                 now=now,
                 event_rules=self.rules,
             )
-            snapshot = restored.process_event("funny_conversation")
+            snapshot = restored.process_event("funny")
 
             self.assertAlmostEqual(snapshot.state.joy, 42.0)
             self.assertEqual(restored.updated_at, now)
@@ -88,7 +88,7 @@ class PersistentAffectRuntimeTests(unittest.TestCase):
             path = Path(directory) / "state.json"
             timestamp = datetime(2026, 7, 16, 12, 0, tzinfo=UTC)
             runtime = AffectRuntime(event_rules=self.rules)
-            runtime.process_event("funny_conversation")
+            runtime.process_event("funny")
 
             runtime.save_state(path, updated_at=timestamp)
             restored = AffectRuntime.from_state_file(
