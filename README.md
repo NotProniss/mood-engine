@@ -2,6 +2,10 @@
 
 A standalone, offline engine for modeling inspectable emotional state, with an optional Hermes Agent plugin adapter.
 
+See the [roadmap](plan.md) for planned work including additional emotions,
+relationship bars, semantic analysis improvements, and bounded response
+self-reinforcement.
+
 ## Current capabilities
 
 - Five bounded emotions: joy, sadness, anger, fear, and disgust

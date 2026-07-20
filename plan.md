@@ -124,7 +124,47 @@ Future improvements:
 3. tune prompt examples using observed false positives/negatives;
 4. consider caching or skipping obviously Casual rounds to reduce token cost.
 
-### 4. Consider additional emotions
+### 4. Add bounded response self-reinforcement
+
+Human-like affect can be amplified by a person's own response, but the assistant
+must not create an uncontrolled positive-feedback loop. A future response-analysis
+layer should treat the assistant's wording as a secondary modifier, not as an
+independent event source.
+
+Initial design:
+
+```text
+user event:
+  pleasant → joy +1.00
+
+emotionally aligned assistant response:
+  pleasant → joy +0.50 maximum
+```
+
+Constraints:
+
+- assistant reinforcement is capped at half the user event;
+- at most one reinforcement modifier applies per completed turn;
+- a Casual user round cannot produce self-reinforcement;
+- the assistant response must align with an emotion already activated by the user;
+- repeated identical responses should receive diminishing returns or a cooldown;
+- decay and emotion bounds remain active;
+- response analysis cannot write raw emotion values;
+- status should expose user effect versus self-reinforcement separately.
+
+A later repair path could reduce an activated negative emotion when the assistant
+responds with a genuine repair signal:
+
+```text
+hurtful user round → sadness +1.00
+clear repair response → sadness -0.50, subject to bounds
+```
+
+This layer should be implemented only after the primary semantic classifier has
+stable logging and tests, because self-reinforcement is where feedback loops can
+become misleading or runaway.
+
+### 5. Consider additional emotions
 
 Candidate additions, not commitments:
 
@@ -139,7 +179,7 @@ Before adding an emotion, define its distinct behavioral purpose, event sources,
 decay behavior, tone bands, status representation, and tests. Do not add a new
 axis merely because a conversation label exists.
 
-### 5. Add separate relationship bars
+### 6. Add separate relationship bars
 
 Relationship state should not be mixed into the five emotion values. Candidate
 persistent relationship dimensions:
@@ -167,7 +207,7 @@ conversation context
 Keep relationship state separate from response tone and never make assistance
 conditional on relationship values.
 
-### 6. Add sentiments / salient social memories
+### 7. Add sentiments / salient social memories
 
 A sentiment layer could record longer-lived, inspectable interpretations such as:
 
@@ -184,7 +224,7 @@ expiry, and provenance. They are not additional emotions and should not silently
 rewrite personality. A later semantic classifier may propose a sentiment, but a
 validated rule should decide whether to store it.
 
-### 7. Improve observability and controls
+### 8. Improve observability and controls
 
 Potential future commands:
 
